@@ -36,6 +36,10 @@ class WalletServiceTest {
     private TransactionRepository transactionRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    @Mock
+    private io.micrometer.core.instrument.Counter counter;
 
     @InjectMocks
     private WalletService walletService;
@@ -59,17 +63,16 @@ class WalletServiceTest {
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
         when(walletRepository.findByUserIdWithLock(1L)).thenReturn(Optional.of(senderWallet));
-        
-        Wallet receiverWallet = Wallet.builder().id(2L).balance(new BigDecimal("0")).build();
-        when(walletRepository.findByIdWithLock(2L)).thenReturn(Optional.of(receiverWallet));
+        when(meterRegistry.counter(anyString())).thenReturn(counter);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             walletService.transfer(request, idempotencyKey);
         });
 
-        assertEquals("Balance not enough!", exception.getMessage());
+        assertEquals("Insufficient balance", exception.getMessage());
         
         verify(walletRepository, never()).save(any());
+        verify(counter, times(1)).increment();
     }
 
     @Test
@@ -94,6 +97,7 @@ class WalletServiceTest {
         when(walletRepository.findByUserIdWithLock(1L)).thenReturn(Optional.of(senderWallet));
         when(walletRepository.findByIdWithLock(2L)).thenReturn(Optional.of(receiverWallet));
         when(transactionRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(meterRegistry.counter(anyString())).thenReturn(counter);
 
         WalletResponse response = walletService.transfer(request, idempotencyKey);
 
@@ -104,5 +108,6 @@ class WalletServiceTest {
         verify(walletRepository, times(2)).save(any());
         verify(transactionRepository, times(1)).save(any());
         verify(eventPublisher, times(1)).publishEvent(any(TransferSuccessEvent.class));
+        verify(counter, times(1)).increment();
     }
 }
