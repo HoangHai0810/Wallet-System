@@ -18,7 +18,7 @@ public class WalletController {
 
     private final WalletService walletService;
 
-    @GetMapping
+    @GetMapping("/my")
     public ResponseEntity<WalletResponse> getMyWallet() {
         return ResponseEntity.ok(walletService.getMyWallet());
     }

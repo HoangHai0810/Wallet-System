@@ -21,11 +21,14 @@ public class Transaction {
     private Long id;
 
     private Long fromWalletId;
-    
+
     private Long toWalletId;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
+
+    @Column(nullable = false, length = 50)
+    private String category;
 
     @Column(nullable = false, length = 20)
     private String type;

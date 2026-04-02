@@ -54,15 +54,15 @@ class WalletServiceTest {
         SecurityContextHolder.setContext(securityContext);
 
         User sender = User.builder().id(1L).email(currentEmail).build();
-        Wallet senderWallet = Wallet.builder().id(1L).userId(1L).balance(new BigDecimal("100")).build();
-        
+        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("100")).build();
+
         TransferRequest request = new TransferRequest();
         request.setToWalletId(2L);
         request.setAmount(new BigDecimal("500"));
         String idempotencyKey = "test-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
-        when(walletRepository.findByUserIdWithLock(1L)).thenReturn(Optional.of(senderWallet));
+        when(walletRepository.findByUser_IdWithLock(1L)).thenReturn(Optional.of(senderWallet));
         when(meterRegistry.counter(anyString())).thenReturn(counter);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -70,7 +70,7 @@ class WalletServiceTest {
         });
 
         assertEquals("Insufficient balance", exception.getMessage());
-        
+
         verify(walletRepository, never()).save(any());
         verify(counter, times(1)).increment();
     }
@@ -85,16 +85,16 @@ class WalletServiceTest {
         SecurityContextHolder.setContext(securityContext);
 
         User sender = User.builder().id(1L).email(currentEmail).build();
-        Wallet senderWallet = Wallet.builder().id(1L).userId(1L).balance(new BigDecimal("1000")).build();
+        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("1000")).build();
         Wallet receiverWallet = Wallet.builder().id(2L).balance(new BigDecimal("500")).build();
-        
+
         TransferRequest request = new TransferRequest();
         request.setToWalletId(2L);
         request.setAmount(new BigDecimal("200"));
         String idempotencyKey = "new-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
-        when(walletRepository.findByUserIdWithLock(1L)).thenReturn(Optional.of(senderWallet));
+        when(walletRepository.findByUser_IdWithLock(1L)).thenReturn(Optional.of(senderWallet));
         when(walletRepository.findByIdWithLock(2L)).thenReturn(Optional.of(receiverWallet));
         when(transactionRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(meterRegistry.counter(anyString())).thenReturn(counter);

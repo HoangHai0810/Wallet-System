@@ -34,14 +34,19 @@ public class AuthService {
             throw new RuntimeException("Email was used!");
         }
 
+        if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+            throw new RuntimeException("Phone number was used!");
+        }
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
                 .build();
         User savedUser = userRepository.save(user);
 
         Wallet wallet = Wallet.builder()
-                .userId(savedUser.getId())
+                .user(savedUser)
                 .build();
         walletRepository.save(wallet);
 

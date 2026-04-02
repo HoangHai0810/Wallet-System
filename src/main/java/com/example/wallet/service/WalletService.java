@@ -11,7 +11,6 @@ import com.example.wallet.repository.WalletRepository;
 import com.example.wallet.repository.TransactionRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import com.example.wallet.event.TransferSuccessEvent;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -28,12 +27,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class WalletService {
 
-        private final WalletRepository walletRepository;
-        private final UserRepository userRepository;
-        private final TransactionRepository transactionRepository;
-        private final ApplicationEventPublisher eventPublisher;
-        private final MeterRegistry meterRegistry;
-
+    private final WalletRepository walletRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
+    private final MeterRegistry meterRegistry;
+    private final org.redisson.api.RedissonClient redissonClient;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @Cacheable(value = "wallet", key = "#root.target.getCurrentUserEmail()")
     public WalletResponse getMyWallet() {
@@ -47,8 +46,9 @@ public class WalletService {
         Wallet wallet = getCurrentUserWallet(true);
         wallet.setBalance(wallet.getBalance().add(request.getAmount()));
         walletRepository.save(wallet);
-        
+
         meterRegistry.counter("wallet.deposit.success").increment();
+
         return new WalletResponse(wallet.getId(), wallet.getBalance());
     }
 
@@ -65,58 +65,106 @@ public class WalletService {
 
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
-        
+
         meterRegistry.counter("wallet.withdraw.success").increment();
+
         return new WalletResponse(wallet.getId(), wallet.getBalance());
     }
 
     @Transactional
     @CacheEvict(value = "wallet", allEntries = true)
     public WalletResponse transfer(TransferRequest request, String idempotencyKey) {
-        Wallet fromWallet = getCurrentUserWallet(true);
+        Long fromId = getCurrentUserWallet(false).getId();
+        Long toId;
+        if (request.getToPhoneNumber() != null) {
+            Wallet toWallet = walletRepository.findByPhoneNumber(request.getToPhoneNumber())
+                    .orElseThrow(() -> new RuntimeException("Wallet not found"));
+            toId = toWallet.getId();
+        } else {
+            toId = request.getToWalletId();
+        }
+
+        if (toId == null) {
+            throw new RuntimeException("Recipient information (ID or Phone) is required!");
+        }
+
+        if (fromId.equals(toId)) {
+            throw new RuntimeException("Cannot transfer to yourself");
+        }
+
         BigDecimal amount = request.getAmount();
 
-        if (fromWallet.getBalance().compareTo(amount) < 0) {
-            meterRegistry.counter("wallet.transfer.fail").increment();
-            throw new RuntimeException("Insufficient balance");
+        Long first = Math.min(fromId, toId);
+        Long second = Math.max(fromId, toId);
+
+        org.redisson.api.RLock lock1 = redissonClient.getLock("wallet:lock:" + first);
+        org.redisson.api.RLock lock2 = redissonClient.getLock("wallet:lock:" + second);
+
+        try {
+            if (lock1.tryLock(10, 5, java.util.concurrent.TimeUnit.SECONDS) &&
+                    lock2.tryLock(10, 5, java.util.concurrent.TimeUnit.SECONDS)) {
+
+                Wallet fromWallet = walletRepository.findById(fromId)
+                        .orElseThrow(() -> new RuntimeException("Wallet not found"));
+
+                if (fromWallet.getBalance().compareTo(amount) < 0) {
+                    throw new RuntimeException("Balance not enough");
+                }
+                // Check Idempotency
+                Optional<Transaction> existingTx = transactionRepository.findByIdempotencyKey(idempotencyKey);
+                if (existingTx.isPresent()) {
+                    return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
+                }
+
+                Wallet toWallet = walletRepository.findById(toId)
+                        .orElseThrow(() -> new RuntimeException("Recipient wallet not found"));
+
+                // set balance
+                fromWallet.setBalance(fromWallet.getBalance().subtract(amount));
+                toWallet.setBalance(toWallet.getBalance().add(amount));
+
+                walletRepository.save(fromWallet);
+                walletRepository.save(toWallet);
+
+                // save transaction
+                Transaction tx = Transaction.builder()
+                        .fromWalletId(fromWallet.getId())
+                        .toWalletId(toWallet.getId())
+                        .amount(amount)
+                        .category(request.getCategory())
+                        .idempotencyKey(idempotencyKey)
+                        .type("TRANSFER")
+                        .status("SUCCESS")
+                        .build();
+                transactionRepository.save(tx);
+
+                meterRegistry.counter("wallet.transfer.success").increment();
+
+                rabbitTemplate.convertAndSend(
+                        com.example.wallet.config.RabbitMQConfig.EXCHANGE,
+                        com.example.wallet.config.RabbitMQConfig.ROUTING_KEY,
+                        new TransferSuccessEvent(fromId, toId, amount));
+
+                return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
+            } else {
+                throw new RuntimeException("System Error, Please Try Later!");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Transaction is interupt!");
+        } finally {
+            if (lock1.isHeldByCurrentThread())
+                lock1.unlock();
+            if (lock2.isHeldByCurrentThread())
+                lock2.unlock();
         }
-
-        //check Idempotency
-        Optional<Transaction> existingTx = transactionRepository.findByIdempotencyKey(idempotencyKey);
-        if (existingTx.isPresent()) {
-            return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
-        }
-
-        Wallet toWallet = walletRepository.findByIdWithLock(request.getToWalletId())
-                .orElseThrow(() -> new RuntimeException("Recipient wallet not found"));
-
-        //set balance
-        fromWallet.setBalance(fromWallet.getBalance().subtract(amount));
-        toWallet.setBalance(toWallet.getBalance().add(amount));
-        
-        walletRepository.save(fromWallet);
-        walletRepository.save(toWallet);
-
-        //save transaction
-        Transaction tx = Transaction.builder()
-                .fromWalletId(fromWallet.getId())
-                .toWalletId(toWallet.getId())
-                .amount(amount)
-                .idempotencyKey(idempotencyKey)
-                .type("TRANSFER")
-                .status("SUCCESS")
-                .build();
-        transactionRepository.save(tx);
-
-        meterRegistry.counter("wallet.transfer.success").increment();
-        eventPublisher.publishEvent(new TransferSuccessEvent(fromWallet.getId(), toWallet.getId(), amount));
-
-        return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
     }
 
-    public Page<Transaction> getHistory(int page, int size, java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
+    public Page<Transaction> getHistory(int page, int size, java.time.LocalDateTime startDate,
+            java.time.LocalDateTime endDate) {
         Wallet wallet = getCurrentUserWallet(false);
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size,
+                Sort.by("createdAt").descending());
         return transactionRepository.findByWalletAndDateRange(wallet.getId(), startDate, endDate, pageable);
     }
 
@@ -165,9 +213,9 @@ public class WalletService {
         String email = getCurrentUserEmail();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
-        
-        return (lock ? walletRepository.findByUserIdWithLock(user.getId()) 
-                     : walletRepository.findByUserId(user.getId()))
+
+        return (lock ? walletRepository.findByUser_IdWithLock(user.getId())
+                : walletRepository.findByUser_Id(user.getId()))
                 .orElseThrow(() -> new RuntimeException("Wallet not found for user: " + email));
     }
 

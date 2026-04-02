@@ -17,8 +17,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
         @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE (t.fromWalletId = :walletId OR t.toWalletId = :walletId) "
                         +
-                        "AND (:startDate IS NULL OR t.createdAt >= :startDate) " +
-                        "AND (:endDate IS NULL OR t.createdAt <= :endDate)")
+                        "AND (cast(:startDate as timestamp) IS NULL OR t.createdAt >= :startDate) " +
+                        "AND (cast(:endDate as timestamp) IS NULL OR t.createdAt <= :endDate)")
         Page<Transaction> findByWalletAndDateRange(
                         @org.springframework.data.repository.query.Param("walletId") Long walletId,
                         @org.springframework.data.repository.query.Param("startDate") java.time.LocalDateTime startDate,

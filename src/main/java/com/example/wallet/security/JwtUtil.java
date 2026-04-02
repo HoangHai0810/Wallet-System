@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.security.Key;
 import java.util.Date;
@@ -11,8 +12,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "my_super_wallet_secure_secret_key_which_must_be_long_enough";
-    private final long EXPIRATION_TIME = 86400000; // 1 ngày (mili giây)
+    @Value("${jwt.secret:my_super_wallet_secure_secret_key_which_must_be_long_enough}")
+    private String SECRET_KEY;
+    private final long EXPIRATION_TIME = 86400000; // 1 day
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());

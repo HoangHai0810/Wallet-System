@@ -11,10 +11,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransferRequest {
-    @NotNull(message = "Wallet's ID is required!")
     private Long toWalletId;
 
     @NotNull(message = "Amount is required!")
     @Positive(message = "Amount need greater than 0!")
     private BigDecimal amount;
+
+    private String toPhoneNumber;
+    private String category;
 }

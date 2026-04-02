@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN phone_number VARCHAR(20) NOT NULL UNIQUE;
+
+ALTER TABLE transactions ADD COLUMN category VARCHAR(50);

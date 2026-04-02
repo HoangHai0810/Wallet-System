@@ -1,25 +1,23 @@
 package com.example.wallet.event;
 
 import org.springframework.stereotype.Component;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import com.example.wallet.config.RabbitMQConfig;
 
 @Component
-@Slf4j
 public class NotificationListener {
 
-    @Async
-    @EventListener
+    @RabbitListener(queues = RabbitMQConfig.QUEUE)
     public void handleTransferSuccess(TransferSuccessEvent event) {
-        log.info("🔥 [BÁO ĐỘNG] Ting Ting! Ví {} vừa nhận được {} VNĐ từ Ví {}",
-                event.getToWalletId(), event.getAmount(), event.getFromWalletId());
+        System.out.println("Processing notification for transfer: " + event.getAmount()
+                + " from " + event.getFromWalletId() + " to " + event.getToWalletId());
 
-        // Giả ngủ 3 giây để làm bộ đang gửi cục Email nặng nề
         try {
-            Thread.sleep(3000);
-        } catch (Exception e) {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        log.info("✅ [BÁO ĐỘNG] Đã gửi thông báo Email thành công!");
+
+        System.out.println("Notification sent!");
     }
 }

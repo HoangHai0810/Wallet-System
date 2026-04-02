@@ -17,7 +17,7 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${SPRING_DATA_REDIS_PASSWORD:}
+
 
   cache:
     type: redis
@@ -31,3 +31,14 @@ management:
   endpoint:
     health:
       show-details: always
+
+momo:
+  secret-key: ${MOMO_SECRET_KEY:my-super-secret-key-123}
+
+jwt:
+  secret: ${JWT_SECRET:my-super-wallet-secure-secret-key-default-value}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
