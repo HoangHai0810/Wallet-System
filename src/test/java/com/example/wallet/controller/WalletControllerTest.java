@@ -29,13 +29,16 @@ class WalletControllerTest {
     @MockitoBean
     private WalletService walletService;
 
+    @MockitoBean
+    private org.redisson.api.RedissonClient redissonClient;
+
     @Test
     @WithMockUser(username = "test@example.com")
     void getMyWallet_ShouldReturnWalletInfo_WhenAuthenticated() throws Exception {
         WalletResponse mockResponse = new WalletResponse(1L, new BigDecimal("1000.00"), "0905116043");
         when(walletService.getMyWallet()).thenReturn(mockResponse);
 
-        mockMvc.perform(get("/wallet")
+        mockMvc.perform(get("/wallet/my")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))

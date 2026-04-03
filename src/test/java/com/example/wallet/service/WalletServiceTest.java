@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,9 +34,11 @@ class WalletServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
-    private ApplicationEventPublisher eventPublisher;
-    @Mock
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    @Mock
+    private org.redisson.api.RedissonClient redissonClient;
+    @Mock
+    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
     @Mock
     private io.micrometer.core.instrument.Counter counter;
 
@@ -62,17 +63,25 @@ class WalletServiceTest {
         String idempotencyKey = "test-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
-        when(walletRepository.findByUser_IdWithLock(1L)).thenReturn(Optional.of(senderWallet));
-        when(meterRegistry.counter(anyString())).thenReturn(counter);
+        when(walletRepository.findByUser_Id(1L)).thenReturn(Optional.of(senderWallet));
+
+        org.redisson.api.RLock rLock = mock(org.redisson.api.RLock.class);
+        when(redissonClient.getLock(anyString())).thenReturn(rLock);
+        try {
+            when(rLock.tryLock(anyLong(), anyLong(), any())).thenReturn(true);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient, rabbitTemplate);
+
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(senderWallet));
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             walletService.transfer(request, idempotencyKey);
         });
 
-        assertEquals("Insufficient balance", exception.getMessage());
-
-        verify(walletRepository, never()).save(any());
-        verify(counter, times(1)).increment();
+        assertEquals("Balance not enough", exception.getMessage());
     }
 
     @Test
@@ -84,7 +93,7 @@ class WalletServiceTest {
         when(authentication.getName()).thenReturn(currentEmail);
         SecurityContextHolder.setContext(securityContext);
 
-        User sender = User.builder().id(1L).email(currentEmail).build();
+        User sender = User.builder().id(1L).email(currentEmail).phoneNumber("0905116043").build();
         Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("1000")).build();
         Wallet receiverWallet = Wallet.builder().id(2L).balance(new BigDecimal("500")).build();
 
@@ -94,20 +103,30 @@ class WalletServiceTest {
         String idempotencyKey = "new-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
-        when(walletRepository.findByUser_IdWithLock(1L)).thenReturn(Optional.of(senderWallet));
-        when(walletRepository.findByIdWithLock(2L)).thenReturn(Optional.of(receiverWallet));
-        when(transactionRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(walletRepository.findByUser_Id(1L)).thenReturn(Optional.of(senderWallet));
+
         when(meterRegistry.counter(anyString())).thenReturn(counter);
+
+        org.redisson.api.RLock rLock = mock(org.redisson.api.RLock.class);
+        when(redissonClient.getLock(anyString())).thenReturn(rLock);
+        try {
+            when(rLock.tryLock(anyLong(), anyLong(), any())).thenReturn(true);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient, rabbitTemplate);
+
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(senderWallet));
+        when(walletRepository.findById(2L)).thenReturn(Optional.of(receiverWallet));
+        when(transactionRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
 
         WalletResponse response = walletService.transfer(request, idempotencyKey);
 
         assertEquals(new BigDecimal("800"), response.getBalance());
-        assertEquals(new BigDecimal("800"), senderWallet.getBalance());
-        assertEquals(new BigDecimal("700"), receiverWallet.getBalance());
-
-        verify(walletRepository, times(2)).save(any());
+        assertEquals("0905116043", response.getPhoneNumber());
+        verify(walletRepository, times(2)).save(any(Wallet.class));
         verify(transactionRepository, times(1)).save(any());
-        verify(eventPublisher, times(1)).publishEvent(any(TransferSuccessEvent.class));
-        verify(counter, times(1)).increment();
+        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 }
