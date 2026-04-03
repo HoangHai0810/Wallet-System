@@ -15,4 +15,5 @@ public class WalletResponse implements Serializable {
     
     private Long id;
     private BigDecimal balance;
+    private String phoneNumber;
 }

@@ -42,7 +42,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/webhooks/**").permitAll()
-                        .requestMatchers("/api/ai/**").authenticated() 
+                        .requestMatchers("/api/ai/**").authenticated()
+                        .requestMatchers("/api/webhook/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

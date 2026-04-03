@@ -37,7 +37,7 @@ public class WalletService {
     @Cacheable(value = "wallet", key = "#root.target.getCurrentUserEmail()")
     public WalletResponse getMyWallet() {
         Wallet wallet = getCurrentUserWallet(false);
-        return new WalletResponse(wallet.getId(), wallet.getBalance());
+        return new WalletResponse(wallet.getId(), wallet.getBalance(), wallet.getUser().getPhoneNumber());
     }
 
     @Transactional
@@ -49,7 +49,7 @@ public class WalletService {
 
         meterRegistry.counter("wallet.deposit.success").increment();
 
-        return new WalletResponse(wallet.getId(), wallet.getBalance());
+        return new WalletResponse(wallet.getId(), wallet.getBalance(), wallet.getUser().getPhoneNumber());
     }
 
     @Transactional
@@ -68,7 +68,7 @@ public class WalletService {
 
         meterRegistry.counter("wallet.withdraw.success").increment();
 
-        return new WalletResponse(wallet.getId(), wallet.getBalance());
+        return new WalletResponse(wallet.getId(), wallet.getBalance(), wallet.getUser().getPhoneNumber());
     }
 
     @Transactional
@@ -222,10 +222,31 @@ public class WalletService {
     private WalletResponse getWalletResponse(Long walletId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new RuntimeException("Wallet not found: " + walletId));
-        return new WalletResponse(wallet.getId(), wallet.getBalance());
+        return new WalletResponse(wallet.getId(), wallet.getBalance(), wallet.getUser().getPhoneNumber());
     }
 
     public String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+    
+    @Transactional
+    @CacheEvict(value = "wallet", allEntries = true)
+    public void topUpFromBank(String phoneNumber, BigDecimal amount) {
+        Wallet wallet = walletRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new RuntimeException("Wallet not found for phone: " + phoneNumber));
+
+        wallet.setBalance(wallet.getBalance().add(amount));
+        walletRepository.save(wallet);
+
+        Transaction transaction = Transaction.builder()
+                .fromWalletId(null) 
+                .toWalletId(wallet.getId())
+                .amount(amount)
+                .type("DEPOSIT")
+                .status("SUCCESS")
+                .category("BANK_TRANSFER")
+                .build();
+        transactionRepository.save(transaction);
+        meterRegistry.counter("wallet.deposit.bank").increment();
     }
 }
