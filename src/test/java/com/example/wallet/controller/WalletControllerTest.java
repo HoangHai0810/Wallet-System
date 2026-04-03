@@ -32,7 +32,7 @@ class WalletControllerTest {
     @Test
     @WithMockUser(username = "test@example.com")
     void getMyWallet_ShouldReturnWalletInfo_WhenAuthenticated() throws Exception {
-        WalletResponse mockResponse = new WalletResponse(1L, new BigDecimal("1000.00"));
+        WalletResponse mockResponse = new WalletResponse(1L, new BigDecimal("1000.00"), "0905116043");
         when(walletService.getMyWallet()).thenReturn(mockResponse);
 
         mockMvc.perform(get("/wallet")

@@ -113,7 +113,7 @@ public class WalletService {
                 // Check Idempotency
                 Optional<Transaction> existingTx = transactionRepository.findByIdempotencyKey(idempotencyKey);
                 if (existingTx.isPresent()) {
-                    return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
+                    return new WalletResponse(fromWallet.getId(), fromWallet.getBalance(), fromWallet.getUser().getPhoneNumber());
                 }
 
                 Wallet toWallet = walletRepository.findById(toId)
@@ -145,7 +145,7 @@ public class WalletService {
                         com.example.wallet.config.RabbitMQConfig.ROUTING_KEY,
                         new TransferSuccessEvent(fromId, toId, amount));
 
-                return new WalletResponse(fromWallet.getId(), fromWallet.getBalance());
+                return new WalletResponse(fromWallet.getId(), fromWallet.getBalance(), fromWallet.getUser().getPhoneNumber());
             } else {
                 throw new RuntimeException("System Error, Please Try Later!");
             }
@@ -201,7 +201,7 @@ public class WalletService {
             tx.setStatus("SUCCESS");
             transactionRepository.save(tx);
 
-            return new WalletResponse(wallet.getId(), wallet.getBalance());
+            return new WalletResponse(wallet.getId(), wallet.getBalance(), wallet.getUser().getPhoneNumber());
         }
 
         tx.setStatus("FAILED");
