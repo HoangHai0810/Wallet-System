@@ -21,12 +21,8 @@ spring:
     redis:
       host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:localhost}}
       port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:6379}}
-      password: ${REDIS_PASSWORD:}
-
   redisson:
     address: "redis://${REDIS_HOST:${SPRING_DATA_REDIS_HOST:localhost}}:${REDIS_PORT:${SPRING_DATA_REDIS_PORT:6379}}"
-    password: ${REDIS_PASSWORD:}
-
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
