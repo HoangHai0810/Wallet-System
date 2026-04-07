@@ -4,7 +4,6 @@ import com.example.wallet.dto.wallet.TransferRequest;
 import com.example.wallet.dto.wallet.WalletResponse;
 import com.example.wallet.entity.User;
 import com.example.wallet.entity.Wallet;
-import com.example.wallet.event.TransferSuccessEvent;
 import com.example.wallet.repository.TransactionRepository;
 import com.example.wallet.repository.UserRepository;
 import com.example.wallet.repository.WalletRepository;
