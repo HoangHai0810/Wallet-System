@@ -38,8 +38,6 @@ class WalletServiceTest {
     @Mock
     private org.redisson.api.RedissonClient redissonClient;
     @Mock
-    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
-    @Mock
     private io.micrometer.core.instrument.Counter counter;
 
     @InjectMocks
@@ -55,11 +53,11 @@ class WalletServiceTest {
         SecurityContextHolder.setContext(securityContext);
 
         User sender = User.builder().id(1L).email(currentEmail).build();
-        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("100")).build();
+        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("6000")).build();
 
         TransferRequest request = new TransferRequest();
         request.setToWalletId(2L);
-        request.setAmount(new BigDecimal("500"));
+        request.setAmount(new BigDecimal("7000"));
         String idempotencyKey = "test-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
@@ -73,7 +71,7 @@ class WalletServiceTest {
             e.printStackTrace();
         }
 
-        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient, rabbitTemplate);
+        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient);
 
         when(walletRepository.findById(1L)).thenReturn(Optional.of(senderWallet));
 
@@ -94,12 +92,12 @@ class WalletServiceTest {
         SecurityContextHolder.setContext(securityContext);
 
         User sender = User.builder().id(1L).email(currentEmail).phoneNumber("0905116043").build();
-        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("1000")).build();
-        Wallet receiverWallet = Wallet.builder().id(2L).balance(new BigDecimal("500")).build();
+        Wallet senderWallet = Wallet.builder().id(1L).user(sender).balance(new BigDecimal("10000")).build();
+        Wallet receiverWallet = Wallet.builder().id(2L).balance(new BigDecimal("5000")).build();
 
         TransferRequest request = new TransferRequest();
         request.setToWalletId(2L);
-        request.setAmount(new BigDecimal("200"));
+        request.setAmount(new BigDecimal("6000"));
         String idempotencyKey = "new-key";
 
         when(userRepository.findByEmail(currentEmail)).thenReturn(Optional.of(sender));
@@ -115,7 +113,7 @@ class WalletServiceTest {
             e.printStackTrace();
         }
 
-        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient, rabbitTemplate);
+        walletService = new WalletService(walletRepository, userRepository, transactionRepository, meterRegistry, redissonClient);
 
         when(walletRepository.findById(1L)).thenReturn(Optional.of(senderWallet));
         when(walletRepository.findById(2L)).thenReturn(Optional.of(receiverWallet));
@@ -123,10 +121,9 @@ class WalletServiceTest {
 
         WalletResponse response = walletService.transfer(request, idempotencyKey);
 
-        assertEquals(new BigDecimal("800"), response.getBalance());
+        assertEquals(new BigDecimal("4000"), response.getBalance());
         assertEquals("0905116043", response.getPhoneNumber());
         verify(walletRepository, times(2)).save(any(Wallet.class));
         verify(transactionRepository, times(1)).save(any());
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 }

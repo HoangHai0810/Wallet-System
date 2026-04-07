@@ -46,7 +46,7 @@ public class AiService {
             2. Which category they spend the most on.
             3. One actionable tip to save money.
             
-            Always reply in the SAME LANGUAGE as the user's input (e.g. if they ask in Vietnamese, reply in Vietnamese).
+            Always reply in the SAME LANGUAGE as the user's input (e.g. if they ask in English, reply in English).
             Keep the response friendly, concise, and use beautiful Markdown formatting with icons.
             """;
 

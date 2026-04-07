@@ -32,7 +32,6 @@ public class WalletService {
     private final TransactionRepository transactionRepository;
     private final MeterRegistry meterRegistry;
     private final org.redisson.api.RedissonClient redissonClient;
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @Cacheable(value = "wallet", key = "#root.target.getCurrentUserEmail()")
     public WalletResponse getMyWallet() {
@@ -142,16 +141,8 @@ public class WalletService {
                         .build();
                 transactionRepository.save(tx);
 
-                meterRegistry.counter("wallet.transfer.success").increment();
 
-                try {
-                    rabbitTemplate.convertAndSend(
-                            com.example.wallet.config.RabbitMQConfig.EXCHANGE,
-                            com.example.wallet.config.RabbitMQConfig.ROUTING_KEY,
-                            new TransferSuccessEvent(fromId, toId, amount));
-                } catch (Exception e) {
-                    System.err.println("Failed to send RabbitMQ notification: " + e.getMessage());
-                }
+                meterRegistry.counter("wallet.transfer.success").increment();
 
                 return new WalletResponse(fromWallet.getId(), fromWallet.getBalance(), fromWallet.getUser().getPhoneNumber());
             } else {
