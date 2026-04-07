@@ -49,8 +49,13 @@ def get_spending_insights() -> str:
     api_token = os.getenv("WALLET_API_TOKEN", "")
     headers = {"Authorization": f"Bearer {api_token}"}
     try:
-        params = {"page": 0, "size": 100}
         with httpx.Client() as client:
+            me_res = client.get(f"{BACKEND_URL}/wallet/my", headers=headers)
+            me_res.raise_for_status()
+            my_id = me_res.json().get("id")
+
+            # 2. Get history
+            params = {"page": 0, "size": 100}
             response = client.get(f"{BACKEND_URL}/wallet/history", headers=headers, params=params)
             response.raise_for_status()
             data = response.json()
@@ -62,14 +67,17 @@ def get_spending_insights() -> str:
             categories = {}
             total_spent = 0
             for tx in transactions:
-                if tx['type'] == 'TRANSFER' or tx['type'] == 'WITHDRAW':
+                is_outgoing_transfer = (tx['type'] == 'TRANSFER' and tx.get('fromWalletId') == my_id)
+                is_withdraw = (tx['type'] == 'WITHDRAW')
+                
+                if is_outgoing_transfer or is_withdraw:
                     cat = tx.get('category') or "Uncategorized"
                     amount = float(tx['amount'])
                     categories[cat] = categories.get(cat, 0) + amount
                     total_spent += amount
             
             if total_spent == 0:
-                return "You have no spending transactions to categorize."
+                return "You have no spending transactions to categorize. (Received money is not counted as spending)"
 
             res = f"Total recent spending: {total_spent:,.0f} VNĐ\nBreakdown by category:\n"
             for cat, amt in sorted(categories.items(), key=lambda x: x[1], reverse=True):
