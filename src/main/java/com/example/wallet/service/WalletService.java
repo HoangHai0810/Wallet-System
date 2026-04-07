@@ -11,7 +11,6 @@ import com.example.wallet.repository.WalletRepository;
 import com.example.wallet.repository.TransactionRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
-import com.example.wallet.event.TransferSuccessEvent;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
