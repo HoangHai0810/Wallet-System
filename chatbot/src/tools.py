@@ -27,8 +27,12 @@ def get_transaction_history(page: int = 0, size: int = 5) -> str:
     api_token = os.getenv("WALLET_API_TOKEN", "")
     headers = {"Authorization": f"Bearer {api_token}"}
     try:
-        params = {"page": page, "size": size}
         with httpx.Client() as client:
+            me_res = client.get(f"{BACKEND_URL}/wallet/my", headers=headers)
+            me_res.raise_for_status()
+            my_id = me_res.json().get("id")
+
+            params = {"page": page, "size": size}
             response = client.get(f"{BACKEND_URL}/wallet/history", headers=headers, params=params)
             response.raise_for_status()
             data = response.json()
@@ -38,7 +42,6 @@ def get_transaction_history(page: int = 0, size: int = 5) -> str:
             
             res = "Here are your most recent transactions:\n"
             for tx in transactions:
-                # Distinguish direction
                 is_incoming = (tx['type'] == 'TRANSFER' and tx.get('toWalletId') == my_id)
                 direction = "➕ Receive" if is_incoming else "➖ Transfer"
                 if tx['type'] == 'DEPOSIT' or tx['type'] == 'DEPOSIT_WEBHOOK':

@@ -7,7 +7,6 @@ import ChatWidget from '../components/ChatWidget';
 const Dashboard = () => {
   const [wallet, setWallet] = useState(null);
   const [history, setHistory] = useState([]);
-  const [bankHistory, setBankHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -21,8 +20,6 @@ const Dashboard = () => {
       setWallet(walletRes.data);
       const historyRes = await walletService.getHistory({ page: 0, size: 5 });
       setHistory(historyRes.data.content);
-      const bankRes = await walletService.getBankTransactions(0, 5);
-      setBankHistory(bankRes.content);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) navigate('/login');
@@ -38,7 +35,7 @@ const Dashboard = () => {
       setAiAnalysis(res.data);
     } catch (err) {
       console.error(err);
-      setAiAnalysis("Sorry, AI Assistant is currently unavailable. Please try again later.");
+      setAiAnalysis("AI analysis is not available at the moment. Please try again later.");
     } finally {
       setAiLoading(false);
     }
@@ -131,7 +128,7 @@ const Dashboard = () => {
                 <p style={{ fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1.2rem', color: '#f59e0b' }}>
                   NAPTIEN [Your Phone Number]
                 </p>
-                <p className="text-xs mt-2" style={{ color: '#fcd34d' }}>Example: NAPTIEN 0905116043</p>
+                <p className="text-xs mt-2" style={{ color: '#f59e0b' }}>Example: NAPTIEN 0905116043</p>
               </div>
             </div>
 
@@ -221,42 +218,6 @@ const Dashboard = () => {
           <p className="text-secondary text-sm">
             Click "Refresh Insights" to let AI analyze your recent transactions and provide saving tips.
           </p>
-        )}
-      </div>
-
-      <div className="glass-card" style={{ marginBottom: '2rem', padding: '2rem' }}>
-        <h3 className="flex items-center gap-4" style={{ marginBottom: '1.5rem' }}>
-          <span className="text-info">🏦</span> Real Bank Transactions (MB Bank)
-        </h3>
-        {bankHistory.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {bankHistory.map((tx) => (
-              <div key={tx.id} className="flex justify-between items-center" style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                <div className="flex items-center gap-4">
-                  <div style={{ padding: '0.5rem', background: tx.transferType === 'in' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)', borderRadius: '8px' }}>
-                    {tx.transferType === 'in' ? <ArrowDownLeft size={20} color="#22c55e" /> : <ArrowUpRight size={20} color="#ef4444" />}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-4">
-                      <p style={{ fontWeight: 600 }}>{tx.referenceNumber}</p>
-                      <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', color: '#94a3b8' }}>
-                        MB Bank
-                      </span>
-                    </div>
-                    <p className="text-secondary text-sm">{new Date(tx.transactionDate).toLocaleString()}</p>
-                    <p className="text-secondary text-xs mt-1">{tx.content}</p>
-                  </div>
-                </div>
-                <p style={{ fontWeight: 'bold', color: tx.transferType === 'in' ? '#22c55e' : '#ef4444' }}>
-                  {tx.transferType === 'in' ? '+' : '-'}{tx.amount.toLocaleString()} VNĐ
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-secondary text-sm text-center py-4">
-            No bank transactions found. Connect via Webhook to sync data.
-          </div>
         )}
       </div>
 
