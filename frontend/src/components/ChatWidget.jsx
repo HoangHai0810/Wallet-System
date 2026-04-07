@@ -145,7 +145,8 @@ const ChatWidget = () => {
                   fontSize: '0.85rem',
                   lineHeight: '1.4',
                   color: msg.role === 'user' ? 'white' : '#cbd5e1',
-                  border: msg.role === 'ai' ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                  border: msg.role === 'ai' ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                  whiteSpace: 'pre-wrap'
                 }}>
                   {msg.content}
                 </div>

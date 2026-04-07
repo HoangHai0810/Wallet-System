@@ -49,8 +49,8 @@ def get_transaction_history(page: int = 0, size: int = 5) -> str:
                 elif tx['type'] == 'WITHDRAW':
                     direction = "💸 Withdraw"
 
-                res += f"- 📅 {tx['createdAt']}: {direction} | 💵 {tx['amount']:,} VNĐ | 🏷️ {tx.get('category', 'General')} | ✅ {tx['status']}\n"
-            return res
+                res += f"- 📅 {tx['createdAt'][0:10]}: {direction} {tx['amount']:,.0f} VNĐ\n"
+            return res.replace(",", ".") 
     except Exception as e:
         return f"Error retrieving transaction history: {str(e)}"
 
