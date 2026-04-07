@@ -71,7 +71,7 @@ const Dashboard = () => {
         <div className="glass-card" style={{ flex: 1, padding: '2rem' }}>
           <p className="text-secondary text-sm">Total Balance</p>
           <h1 style={{ fontSize: '2.5rem', margin: '0.5rem 0' }}>
-            ${wallet?.balance?.toLocaleString() || '0'}
+            {wallet?.balance?.toLocaleString() || '0'} <span style={{ fontSize: '1rem', verticalAlign: 'middle' }}>VNĐ</span>
           </h1>
           <div className="flex gap-4 mt-4">
             <button className="flex items-center gap-4" style={{ flex: 1 }} onClick={() => navigate('/transfer')}>
@@ -248,7 +248,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <p style={{ fontWeight: 'bold', color: tx.transferType === 'in' ? '#22c55e' : '#ef4444' }}>
-                  {tx.transferType === 'in' ? '+' : '-'}${tx.amount.toLocaleString()}
+                  {tx.transferType === 'in' ? '+' : '-'}{tx.amount.toLocaleString()} VNĐ
                 </p>
               </div>
             ))}
@@ -280,8 +280,8 @@ const Dashboard = () => {
                     <p className="text-secondary text-sm">{new Date(tx.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
-                <p style={{ fontWeight: 'bold', color: tx.type === 'TRANSFER' ? '#ef4444' : '#22c55e' }}>
-                  {tx.type === 'TRANSFER' ? '-' : '+'}${tx.amount.toLocaleString()}
+                <p style={{ fontWeight: 'bold', color: (tx.type === 'TRANSFER' && tx.toWalletId === wallet?.id) ? '#22c55e' : (tx.type === 'TRANSFER' ? '#ef4444' : '#22c55e') }}>
+                  {(tx.type === 'TRANSFER' && tx.toWalletId === wallet?.id) ? '+' : (tx.type === 'TRANSFER' ? '-' : '+')}{tx.amount.toLocaleString()} VNĐ
                 </p>
               </div>
             ))}
