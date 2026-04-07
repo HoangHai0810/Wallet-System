@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { walletService } from '../services/api';
 import { LogOut, ArrowUpRight, ArrowDownLeft, RefreshCw, History, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ChatWidget from '../components/ChatWidget';
 
 const Dashboard = () => {
   const [wallet, setWallet] = useState(null);
@@ -289,6 +290,7 @@ const Dashboard = () => {
           <p className="text-center text-secondary">No transactions yet.</p>
         )}
       </div>
+      <ChatWidget />
     </div>
   );
 };

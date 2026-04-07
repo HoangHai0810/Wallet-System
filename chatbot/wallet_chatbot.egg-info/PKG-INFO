@@ -1,0 +1,50 @@
+Metadata-Version: 2.4
+Name: wallet-chatbot
+Version: 0.1.0
+Summary: AI Agent for E-Wallet system using LangGraph
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: langchain>=0.3.0
+Requires-Dist: langchain-openai>=0.2.0
+Requires-Dist: langgraph>=0.2.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: fastapi>=0.110.0
+Requires-Dist: uvicorn>=0.27.0
+
+# Wallet Chatbot 🤖
+
+AI Agent project to support E-Wallet (Wallet System) users, built on **LangGraph** and **LangChain**.
+
+## Features
+- 💰 **Balance Inquiry**: Check real-time account balances.
+- 📜 **Transaction History**: View lists of recent transactions.
+- 📊 **Spending Insights**: Automated categorization and reporting of spending insights.
+- 💬 **Intelligent Assistant**: Handles queries and supports users in English.
+
+## Project Structure
+- `src/agent/graph.py`: Defines the Agent's workflow state machine (Graph).
+- `src/tools.py`: API tools connecting to the Wallet Backend.
+- `src/prompts.py`: AI persona and system instructions.
+
+## Installation & Setup
+1. Install Python 3.11+ and [uv](https://github.com/astral-sh/uv).
+2. Create a `.env` file from `.env.example` and fill in the details:
+   ```bash
+   OPENAI_API_KEY=sk-...
+   WALLET_BACKEND_URL=http://your-backend-url
+   WALLET_API_TOKEN=your-user-jwt-token
+   ```
+3. Install dependencies:
+   ```bash
+   uv sync
+   ```
+4. Run the Agent (e.g., via test script):
+   ```bash
+   uv run python tests/test_agent.py
+   ```
+
+## Roadmap
+- [ ] Integrate Transfer Tool with OTP verification.
+- [ ] Add RAG for deep product knowledge and policy support.
