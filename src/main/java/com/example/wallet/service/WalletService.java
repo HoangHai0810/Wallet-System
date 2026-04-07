@@ -140,10 +140,14 @@ public class WalletService {
 
                 meterRegistry.counter("wallet.transfer.success").increment();
 
-                rabbitTemplate.convertAndSend(
-                        com.example.wallet.config.RabbitMQConfig.EXCHANGE,
-                        com.example.wallet.config.RabbitMQConfig.ROUTING_KEY,
-                        new TransferSuccessEvent(fromId, toId, amount));
+                try {
+                    rabbitTemplate.convertAndSend(
+                            com.example.wallet.config.RabbitMQConfig.EXCHANGE,
+                            com.example.wallet.config.RabbitMQConfig.ROUTING_KEY,
+                            new TransferSuccessEvent(fromId, toId, amount));
+                } catch (Exception e) {
+                    System.err.println("Failed to send RabbitMQ notification: " + e.getMessage());
+                }
 
                 return new WalletResponse(fromWallet.getId(), fromWallet.getBalance(), fromWallet.getUser().getPhoneNumber());
             } else {

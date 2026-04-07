@@ -19,12 +19,24 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:localhost}}
+      port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:6379}}
+      password: ${REDIS_PASSWORD:}
 
+  redisson:
+    address: "redis://${REDIS_HOST:${SPRING_DATA_REDIS_HOST:localhost}}:${REDIS_PORT:${SPRING_DATA_REDIS_PORT:6379}}"
+    password: ${REDIS_PASSWORD:}
+
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
   cache:
     type: redis
+
 
 # Cấu hình Actuator để Monitor hệ thống
 management:
