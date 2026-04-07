@@ -36,12 +36,20 @@ def get_transaction_history(page: int = 0, size: int = 5) -> str:
             if not transactions:
                 return "You have no recent transactions."
             
-            res = "List of most recent transactions:\n"
+            res = "Here are your most recent transactions:\n"
             for tx in transactions:
-                res += f"- {tx['createdAt']}: {tx['type']} {tx['amount']:,} VNĐ (Status: {tx['status']})\n"
+                # Distinguish direction
+                is_incoming = (tx['type'] == 'TRANSFER' and tx.get('toWalletId') == my_id)
+                direction = "➕ Receive" if is_incoming else "➖ Transfer"
+                if tx['type'] == 'DEPOSIT' or tx['type'] == 'DEPOSIT_WEBHOOK':
+                    direction = "💰 Deposit"
+                elif tx['type'] == 'WITHDRAW':
+                    direction = "💸 Withdraw"
+
+                res += f"- 📅 {tx['createdAt']}: {direction} | 💵 {tx['amount']:,} VNĐ | 🏷️ {tx.get('category', 'General')} | ✅ {tx['status']}\n"
             return res
     except Exception as e:
-        return f"Error fetching transaction history: {str(e)}"
+        return f"Error retrieving transaction history: {str(e)}"
 
 @tool
 def get_spending_insights() -> str:

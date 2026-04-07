@@ -30,7 +30,10 @@ public class AiService {
         String historyText = transactions.isEmpty()
             ? "No recent transactions found."
             : transactions.stream()
-                .map(t -> String.format("- %s: $%s (Category: %s)", t.getType(), t.getAmount(), t.getCategory()))
+                .map(t -> {
+                    String direction = t.getToWalletId().equals(walletService.getMyWallet().getId()) ? "(Receive)" : "(Send)";
+                    return String.format("- %s %s: %s VNĐ (Category: %s)", direction, t.getType(), t.getAmount(), t.getCategory());
+                })
                 .collect(Collectors.joining("\n"));
 
         String prompt = """
@@ -43,7 +46,8 @@ public class AiService {
             2. Which category they spend the most on.
             3. One actionable tip to save money.
             
-            Keep the response friendly, concise, and in English.
+            Always reply in the SAME LANGUAGE as the user's input (e.g. if they ask in Vietnamese, reply in Vietnamese).
+            Keep the response friendly, concise, and use beautiful Markdown formatting with icons.
             """;
 
         Map<String, Object> requestBody = Map.of(
@@ -71,9 +75,10 @@ public class AiService {
                     return (String) firstPart.get("text");
                 }
             }
-            return "AI analysis is not available at the moment.";
+            return "AI analysis is not available at the moment. Please try again later.";
         } catch (Exception e) {
-            return "Could not connect to AI service: " + e.getMessage();
+            // Do not display raw error to UI
+            return "AI service is currently busy, please click 'Refresh Insights' again after a few moments.";
         }
     }
 }

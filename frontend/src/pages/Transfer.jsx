@@ -23,8 +23,14 @@ const Transfer = () => {
   const navigate = useNavigate();
 
   const handleTransfer = async (e) => {
-    e.preventDefault();
+    const transferAmount = parseFloat(amount);
+    if (transferAmount < 5000) {
+      setError('Minimum transfer amount is 5,000 VNĐ');
+      return;
+    }
+
     const idempotencyKey = crypto.randomUUID();
+
     const data = {
       amount: parseFloat(amount),
       category: category,
@@ -91,8 +97,8 @@ const Transfer = () => {
             )}
             
             <div className="mt-4">
-              <label className="text-sm text-secondary">Amount ($)</label>
-              <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required placeholder="0.00" />
+              <label className="text-sm text-secondary">Amount (VNĐ)</label>
+              <input type="number" step="1000" value={amount} onChange={(e) => setAmount(e.target.value)} required placeholder="e.g.: 100,000" />
             </div>
 
             <div className="mt-4">

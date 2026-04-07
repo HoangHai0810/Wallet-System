@@ -93,6 +93,10 @@ public class WalletService {
         }
 
         BigDecimal amount = request.getAmount();
+        if (amount.compareTo(new BigDecimal("5000")) < 0) {
+            throw new RuntimeException("The minimum transfer amount is 5,000 VND.");
+        }
+
 
         Long first = Math.min(fromId, toId);
         Long second = Math.max(fromId, toId);
