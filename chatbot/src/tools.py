@@ -7,12 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BACKEND_URL = os.getenv("WALLET_BACKEND_URL", "http://localhost:8080")
-API_TOKEN = os.getenv("WALLET_API_TOKEN", "")
-
 @tool
 def get_balance() -> str:
     """Gets the current balance and account information of the logged-in user's wallet."""
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    api_token = os.getenv("WALLET_API_TOKEN", "")
+    headers = {"Authorization": f"Bearer {api_token}"}
     try:
         with httpx.Client() as client:
             response = client.get(f"{BACKEND_URL}/wallet/my", headers=headers)
@@ -25,7 +24,8 @@ def get_balance() -> str:
 @tool
 def get_transaction_history(page: int = 0, size: int = 5) -> str:
     """Retrieves the recent transaction history of the user."""
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    api_token = os.getenv("WALLET_API_TOKEN", "")
+    headers = {"Authorization": f"Bearer {api_token}"}
     try:
         params = {"page": page, "size": size}
         with httpx.Client() as client:
@@ -46,7 +46,8 @@ def get_transaction_history(page: int = 0, size: int = 5) -> str:
 @tool
 def get_spending_insights() -> str:
     """Analyzes the user's spending habits and provides a summary by category."""
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    api_token = os.getenv("WALLET_API_TOKEN", "")
+    headers = {"Authorization": f"Bearer {api_token}"}
     try:
         params = {"page": 0, "size": 100}
         with httpx.Client() as client:
